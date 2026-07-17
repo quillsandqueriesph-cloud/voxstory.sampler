@@ -1,0 +1,1829 @@
+<html lang="en"><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voxstory Adventure Studio &amp; Player Engine</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&amp;family=Quicksand:wght=500;700&amp;family=Nunito:wght=400;600;700&amp;display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/diff-match-patch/1.0.5/index.js"></script>
+
+    <style>
+        :root {
+            --bg-main: #f0f4f8;
+            --panel-builder: #ffffff;
+            --panel-preview: #e4e9f0;
+            --primary: #4a90e2;
+            --primary-hover: #357abd;
+            --success: #2ecc71;
+            --warning: #f1c40f;
+            --danger: #e74c3c;
+            --text-dark: #2c3e50;
+            --text-muted: #7f8c8d;
+            --border-color: #dcdde1;
+            
+            /* Framework Classification Tier Visual Profiles */
+            --tier-ind: #2ecc71;
+            --tier-ins: #f1c40f;
+            --tier-fru: #e74c3c;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-dark);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* --- GRAPHICAL SPLIT VIEW SYSTEM --- */
+        #builder-panel {
+            width: 42vw;
+            height: 100vh;
+            background-color: var(--panel-builder);
+            border-right: 2px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+        #preview-panel {
+            width: 58vw;
+            height: 100vh;
+            background-color: var(--panel-preview);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+        }
+
+        /* --- BUILDER SUITE COMPONENT ARCHITECTURE --- */
+        .builder-header {
+            padding: 20px;
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            color: white;
+            border-bottom: 3px solid var(--primary);
+        }
+        .builder-header h1 {
+            font-family: 'Quicksand', sans-serif;
+            font-size: 1.3rem;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .story-controls { display: flex; gap: 6px; }
+        select, input, textarea {
+            width: 100%; padding: 10px; border: 1px solid var(--border-color);
+            border-radius: 8px; font-family: inherit; font-size: 0.95rem; outline: none;
+        }
+        .btn {
+            padding: 10px 16px; border: none; border-radius: 8px; cursor: pointer;
+            font-weight: 600; font-family: 'Quicksand', sans-serif; display: inline-flex;
+            align-items: center; gap: 6px; transition: all 0.2s;
+        }
+        .btn-primary { background-color: var(--primary); color: white; }
+        .btn-secondary { background-color: #ecf0f1; color: var(--text-dark); }
+        .btn-success { background-color: var(--success); color: white; }
+        .btn-danger { background-color: var(--danger); color: white; }
+        .btn-warning { background-color: var(--warning); color: #2c3e50; }
+
+        .workspace-section { padding: 18px; border-bottom: 1px solid var(--border-color); }
+        .section-title {
+            font-family: 'Quicksand', sans-serif; font-size: 1rem; color: #34495e;
+            margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+        }
+        .tabs-container { display: flex; gap: 4px; margin-bottom: 12px; background: #f8f9fa; padding: 4px; border-radius: 8px; }
+        .tab {
+            flex: 1; padding: 8px; text-align: center; background: none; border: none;
+            border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 0.85rem; color: var(--text-muted);
+        }
+        .tab.active { background-color: white; color: var(--primary); box-shadow: 0 2px 4px rgba(0,0,0,0.06); }
+        .form-group { margin-bottom: 14px; }
+        .form-group label { display: block; font-weight: 700; font-size: 0.85rem; margin-bottom: 6px; color: #57606f; }
+        
+        .word-counter-badge { font-size: 0.8rem; font-weight: 700; margin-top: 5px; display: inline-flex; padding: 2px 8px; border-radius: 4px; }
+        .gauge-recommended { background-color: #e8f5e9; color: #1b5e20; }
+        .gauge-warning { background-color: #fff3e0; color: #e65100; }
+
+        /* --- HIGH-FIDELITY APP ENGINE CANVAS CLIENT --- */
+        .student-card {
+            width: 100%; max-width: 620px; height: 640px; background-color: white;
+            border-radius: 24px; box-shadow: 0 12px 32px rgba(0,0,0,0.1); display: flex;
+            flex-direction: column; overflow: hidden; border: 4px solid white; transition: border-color 0.4s;
+        }
+        .student-card.lvl-1-border { border-color: #3498db; }
+        .student-card.lvl-2-border { border-color: #e67e22; }
+        .student-card.lvl-3-border { border-color: #1abc9c; }
+
+        .student-header {
+            padding: 15px 20px; background-color: #f8f9fa; border-bottom: 2px solid #edf2f7;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        #student-header-title { font-family: 'Quicksand', sans-serif; font-weight: 700; font-size: 1.05rem; }
+        #student-header-step { font-size: 0.85rem; font-weight: 700; background: #e2e8f0; padding: 4px 10px; border-radius: 20px; }
+        .student-body { flex: 1; display: flex; flex-direction: column; padding: 24px; overflow-y: auto; }
+
+        /* Welcome & Config UI Views */
+        .home-screen-ui { display: flex; flex-direction: column; gap: 12px; height: 100%; }
+        .home-title-block h2 { font-family: 'Fredoka One', cursive; font-size: 1.7rem; color: var(--primary); text-align: center; }
+.story-cover-banner {
+    width: 100%;
+    margin: 12px 0 18px;
+    padding: 8px;
+    background: #f8fafc;
+    border-radius: 16px;
+    border: 1px solid #dbe7f3;
+}
+
+.story-cover-banner img {
+    width: 100%;
+    max-height: 190px;
+    object-fit: cover;
+    border-radius: 12px;
+    display: none;
+}
+	.home-desc { font-size: 0.9rem; color: var(--text-muted); text-align: center; margin-bottom: 6px; }
+        .mode-selection-divider { display: flex; gap: 12px; }
+        .mode-card { flex: 1; border: 2px solid var(--border-color); border-radius: 12px; padding: 12px; text-align: center; cursor: pointer; }
+        .mode-card.selected { border-color: var(--primary); background-color: #ebf8ff; }
+        .mode-card i { font-size: 1.3rem; margin-bottom: 4px; color: var(--text-muted); }
+        .mode-card.selected i { color: var(--primary); }
+        .mode-card h4 { font-family: 'Quicksand', sans-serif; font-weight: 700; }
+        .mode-card p { font-size: 0.75rem; color: var(--text-muted); }
+        .student-info-form-grid { background-color: #f7fafc; padding: 14px; border-radius: 12px; border: 1px solid var(--border-color); }
+        .form-row-split { display: flex; gap: 10px; margin-top: 8px; }
+        .radio-level-group { display: flex; justify-content: space-around; background-color: #f7fafc; padding: 10px; border-radius: 12px; border: 1px solid var(--border-color); }
+        .radio-lbl { font-weight: 700; font-size: 0.9rem; display: flex; align-items: center; gap: 6px; cursor: pointer; }
+
+        /* Core Reading Visualization Engine Elements */
+   .visualizer-canvas {
+    flex: 1; 
+    background-color: #edf2f7; 
+    border-radius: 16px; 
+    margin-bottom: 15px;
+    background-size: cover; 
+    background-position: center; 
+    display: flex;             
+    flex-direction: column;    
+    justify-content: flex-end; /* This anchors the text box to the bottom */
+    padding: 15px; 
+    min-height: 240px; 
+    position: relative;
+    overflow: hidden;          
+}
+.reading-passage-box {
+    font-family: 'Quicksand', sans-serif; 
+    font-size: 1.35rem; 
+    font-weight: 500; 
+    line-height: 1.4;
+    color: #2c3e50; 
+    background: rgba(255, 255, 255, 0.95); 
+    padding: 16px; 
+    border-radius: 12px;
+    text-align: center; 
+    width: 100%; 
+    max-height: 40%;          
+    overflow-y: auto; 
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+        .audio-nodes-rack { display: flex; justify-content: center; gap: 20px; margin-bottom: 15px; }
+        .node-btn {
+            width: 52px; height: 52px; border-radius: 50%; border: none; background-color: #e2e8f0;
+            color: #4a5568; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+        .node-btn:not(.disabled):hover { transform: scale(1.05); }
+        .node-btn.disabled { opacity: 0.35; cursor: not-allowed; }
+        #btn-node-listen:not(.disabled) { background-color: #ebf8ff; color: #2b6cb0; }
+        #btn-node-mic:not(.disabled) { background-color: #fff5f5; color: #c53030; }
+        #btn-node-mic.recording { background-color: var(--danger) !important; color: white !important; animation: pulse-ring 1.5s infinite; }
+
+        @keyframes pulse-ring {
+            0% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.5); }
+            70% { box-shadow: 0 0 0 10px rgba(231, 76, 60, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); }
+        }
+
+        .student-navigation { display: flex; justify-content: space-between; align-items: center; border-top: 2px solid #edf2f7; padding-top: 15px; }
+        .action-submit-btn {
+            padding: 12px 26px; border-radius: 30px; border: none; background: linear-gradient(135deg, #2ecc71, #27ae60);
+            color: white; font-family: 'Quicksand', sans-serif; font-weight: 700; font-size: 1rem; cursor: pointer;
+            box-shadow: 0 4px 12px rgba(46,204,113,0.2); transition: all 0.2s;
+        }
+        .action-submit-btn.disabled { background: #cbd5e0; box-shadow: none; cursor: not-allowed; opacity: 0.6; }
+
+        /* Quiz Layout Framework */
+        .quiz-body-layout { display: flex; flex-direction: column; justify-content: center; height: 100%; }
+        .quiz-question-card h3 { font-family: 'Quicksand', sans-serif; font-size: 1.2rem; margin-bottom: 16px; color: #2d3748; }
+        .options-list-stack { display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; position: relative; }
+        .quiz-option {
+            width: 100%; padding: 12px 16px; text-align: left; background: white; border: 2px solid #e2e8f0;
+            border-radius: 12px; font-family: inherit; font-size: 0.95rem; cursor: pointer; font-weight: 600;
+        }
+        .quiz-option.selected { background: #ebf8ff; border-color: var(--primary); color: #2b6cb0; }
+        .quiz-dim-tag { position: absolute; top: -26px; right: 0; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; padding: 2px 6px; border-radius: 4px; }
+        .dim-literal { background: #e3f2fd; color: #0d47a1; }
+        .dim-interpretive { background: #f3e5f5; color: #4a148c; }
+        .dim-application { background: #e8f5e9; color: #1b5e20; }
+
+        /* Encouragement Screens */
+        .adaptive-prompt-view { text-align: center; display: flex; flex-direction: column; gap: 15px; justify-content: center; height: 100%; }
+        .adaptive-prompt-view i { font-size: 3.2rem; color: var(--success); }
+        .feedback-headline { font-family: 'Fredoka One', cursive; font-size: 1.5rem; color: var(--text-dark); }
+        .recommendation-alert { background-color: #e8f5e9; border: 1px solid #c8e6c9; padding: 14px; border-radius: 14px; color: #2e7d32; font-weight: 600; }
+        
+        .resume-prompt-layout { text-align: center; display: flex; flex-direction: column; gap: 20px; justify-content: center; height: 100%; }
+        .resume-prompt-layout i { font-size: 3.2rem; color: var(--primary); }
+        .resume-buttons-row { display: flex; gap: 12px; }
+        .resume-buttons-row .btn { flex: 1; padding: 12px; justify-content: center; border-radius: 10px; }
+
+        /* Report Screen Components */
+        .payoff-dashboard-screen { display: flex; flex-direction: column; height: 100%; }
+        .payoff-dashboard-screen h2 { font-family: 'Quicksand', sans-serif; font-size: 1.25rem; text-align: center; margin-bottom: 4px; }
+        .report-meta-text { text-align: center; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px; }
+        .metric-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+        .metric-table th, .metric-table td { padding: 8px; text-align: left; border-bottom: 1px solid #edf2f7; font-size: 0.8rem; }
+        .metric-table th { background-color: #f7fafc; font-weight: 700; color: #4a5568; }
+        
+        .tier-badge { padding: 3px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; }
+        .badge-independent { background-color: #c6f6d5; color: #22543d; }
+        .badge-instructional { background-color: #feebc8; color: #744210; }
+        .badge-frustration { background-color: #fed7d7; color: #742a2a; }
+
+        .running-record-matrix-box {
+            background-color: #2d3748; color: #edf2f7; padding: 10px; border-radius: 8px;
+            font-family: 'Courier New', Courier, monospace; font-size: 0.8rem; line-height: 1.6;
+            max-height: 250px; overflow-y: auto; margin-bottom: 10px; white-space: pre-wrap;
+        }
+        .rr-word { display: inline-block; margin-right: 4px; }
+        .rr-ok { color: #68d391; }
+        .rr-om { color: #fc8181; text-decoration: line-through; }
+        .rr-ins { color: #63b3ed; font-weight: bold; }
+        .rr-sub { color: #fbd38d; text-decoration: underline; }
+
+        .expert-rec-block {
+            background-color: #f7fafc; border-left: 4px solid var(--primary);
+            padding: 10px; border-radius: 0 8px 8px 0; font-size: 0.82rem; line-height: 1.4;
+            max-height: 90px; overflow-y: auto; margin-bottom: 12px;
+        }
+
+        .hidden { display: none !important; }
+
+	.read-word {
+    	    transition: color 0.3s ease;
+            padding: 2px;
+            border-radius: 4px;
+	}
+	.spoken-correct {
+	    color: #2ecc71 !important; /* Success Green */
+	    font-weight: 700;
+	}
+
+        /* Configuration Styles for Production View Overrides */
+        body.standalone-student-mode #builder-panel { display: none !important; }
+        body.standalone-student-mode #preview-panel { width: 100vw !important; height: 100vh !important; background: #eef2f7 !important; padding: 0 !important; }
+        body.standalone-student-mode .student-card { max-width: 660px !important; height: 640px !important; }
+    </style>
+
+                <style>
+                    #builder-panel { display: none !important; }
+                    #preview-panel { width: 100vw !important; height: 100vh !important; background: #eef2f7 !important; padding: 0 !important; }
+                    .student-card { max-width: 660px !important; height: 640px !important; }
+                </style>
+            </head>
+<body>
+
+    <div id="builder-panel">
+        <div class="builder-header">
+            <h1><i class="fa-solid fa-wand-magic-sparkles"></i> Voxstory Adventure Studio</h1>
+            <div class="story-controls">
+                <select id="story-selector" onchange="loadActiveStoryWorkspace(this.value)"><option value="story_1784252816179">The Great Adventure of Milo and Sam</option></select>
+                <button class="btn btn-secondary" onclick="createNewStoryPrompt()" title="New Project"><i class="fa-solid fa-plus"></i></button>
+                <button class="btn btn-secondary" onclick="renameCurrentStory()" title="Rename Project"><i class="fa-solid fa-pen"></i></button>
+                <button class="btn btn-danger" onclick="deleteCurrentStory()"><i class="fa-solid fa-trash"></i></button>
+            </div>
+        </div>
+
+        <div class="workspace-section">
+            <div class="section-title"><i class="fa-solid fa-layer-group"></i> Reading Level</div>
+            <div class="tabs-container" id="editor-level-tabs">
+                <button class="tab active" onclick="setEditorLevel(1)">Level</button>
+                <button class="tab" onclick="setEditorLevel(2)">Level 2</button>
+                <button class="tab" onclick="setEditorLevel(3)">Level 3</button>
+            </div>
+        </div>
+
+        <div class="workspace-section">
+            <div class="section-title"><i class="fa-solid fa-book-open"></i> Storyboard Scene</div>
+            <div class="tabs-container" id="editor-page-tabs">
+                <button class="tab active" onclick="setEditorPage(1)">Page 1</button>
+                <button class="tab" onclick="setEditorPage(2)">Page 2</button>
+                <button class="tab" onclick="setEditorPage(3)">Page 3</button>
+                <button class="tab" onclick="setEditorPage(4)">Page 4</button>
+                <button class="tab" onclick="setEditorPage(5)">Page 5</button>
+            </div>
+
+            <div class="form-group">
+                <label>Whole Passage</label>
+                <textarea id="edit-passage" rows="4" placeholder="Write the continuous reading passage text..." oninput="saveCurrentPageData()"></textarea>
+                <div id="word-count-gauge" class="word-counter-badge gauge-recommended"><i class="fa-solid fa-circle-check"></i> 14 words • Ideal (10-20)</div>
+            </div>
+            
+            <div class="form-group">
+    <label>Backdrop Illustration Graphics (URL or Upload)</label>
+    <div class="media-row" style="display:flex; gap:8px;">
+        <input type="text" id="edit-image" placeholder="Paste asset image URL link..." oninput="saveCurrentPageData()">
+        <input type="file" id="file-image-upload" accept="image/*" style="display: none;" onchange="handleImageUpload(this)">
+        <button class="btn btn-secondary" onclick="document.getElementById('file-image-upload').click()"><i class="fa-solid fa-upload"></i></button>
+        <!-- Add this Clear Button -->
+        <button class="btn btn-danger" onclick="clearCurrentImage()" title="Remove Image"><i class="fa-solid fa-times"></i></button>
+    </div>
+</div>
+            
+            <div class="form-group">
+                <label>Teacher Fluent Reading Audio Track</label>
+    <div class="media-row" style="display:flex; gap:8px; align-items:center;">
+        <audio id="editor-audio-preview" controls="" style="flex: 1 1 0%; height: 32px; display: block;" src="https://files.catbox.moe/7xdbuc.mp3"></audio>
+<input type="text" id="edit-audio-url" placeholder="Paste .mp3 link (e.g. https://...)" oninput="saveCurrentPageData()" style="flex:1;">
+        
+        <audio id="editor-audio-preview" controls="" style="display:none; height: 32px;"></audio>
+        
+        <input type="file" id="file-audio-upload" accept="audio/*" style="display: none;" onchange="handleAudioUpload(this)">
+        <button class="btn btn-secondary" onclick="document.getElementById('file-audio-upload').click()"><i class="fa-solid fa-file-audio"></i></button>
+        <button class="btn btn-danger" onclick="clearCurrentAudio()" title="Remove Audio"><i class="fa-solid fa-times"></i></button>
+    </div>
+</div>
+        </div>
+
+        <div class="workspace-section">
+            <div class="section-title"><i class="fa-solid fa-graduation-cap"></i> Comprehension Question Editor</div>
+            <div class="form-group">
+                <label>Question Item (Exactly 7 Questions: 3 Literal, 2 Interpretive, 2 Application)</label>
+                <select id="quiz-question-selector" onchange="loadQuizQuestionEditor()"><option value="0">Q1 [LITERAL]: Where does Milo live?...</option><option value="1">Q2 [LITERAL]: What does Sam have that h...</option><option value="2">Q3 [LITERAL]: What does Milo eat on the...</option><option value="3">Q4 [INTERPRETIVE]: How does Milo feel about ...</option><option value="4">Q5 [INTERPRETIVE]: What does Sam want to do ...</option><option value="5">Q6 [APPLICATION]: If you have a friend, wha...</option><option value="6">Q7 [APPLICATION]: What farm animal says "Mo...</option></select>
+            </div>
+            <div class="form-group">
+                <label>Question</label>
+                <input type="text" id="quiz-edit-text" oninput="saveQuizQuestionData()">
+            </div>
+            <div class="form-group">
+                <label>Multiple Choice (Comma Separated)</label>
+                <input type="text" id="quiz-edit-options" placeholder="Option A, Option B, Option C" oninput="saveQuizQuestionData()">
+            </div>
+            <div class="form-group">
+                <label>Correct Answer (Must match option choice exactly)</label>
+                <input type="text" id="quiz-edit-answer" placeholder="Match option text perfectly..." oninput="saveQuizQuestionData()">
+            </div>
+        </div>
+
+        <div class="workspace-section" style="margin-top: auto; background-color: #f8f9fa;">
+            <button id="btn-studio-compile" class="btn btn-success" style="width: 100%; justify-content: center; padding: 12px;" onclick="exportStandaloneGame()"><i class="fa-solid fa-file-export"></i> Compile &amp; Export Standalone Engine</button>
+        </div>
+    </div>
+
+    <div id="preview-panel">
+        <div class="student-card" id="student-adventure-card">
+            <div class="student-header">
+                <span id="student-header-title">Voxstory Adventure Reader</span>
+                <span id="student-header-step">Profile</span>
+            </div>
+
+            <div class="student-body">
+                
+                <div id="screen-welcome" class="home-screen-ui">
+<div class="home-title-block">
+    <h2 id="welcome-story-title">📖 The Great Adventure of Milo and Sam</h2>
+</div>
+
+<div class="story-cover-banner">
+    <img id="home-story-cover" alt="Story Cover" src="https://i.ibb.co/ZpNycgR4/level-1-page-1-1.png" style="display: block;">
+</div>
+<p class="home-desc">Complete profile to start your adventure.</p>
+</div>
+<div class="mode-selection-divider">
+                        <div class="mode-card selected" id="mode-card-assessment" onclick="selectAppMode('assessment')">
+                            <i class="fa-solid fa-user-check"></i>
+                            <h4>Assessment Mode</h4>
+                            <p>Reading monitoring track.</p>
+                        </div>
+                        <div class="mode-card" id="mode-card-practice" onclick="selectAppMode('practice')">
+                            <i class="fa-solid fa-graduation-cap"></i>
+                            <h4>Practice Mode</h4>
+                            <p>Replays, tutorials, and unrecorded runs.</p>
+                        </div>
+                    </div>
+
+                    <div class="student-info-form-grid">
+                        <div class="form-group" style="margin-bottom: 8px;">
+                            <label>Full Name <span style="color:var(--danger)">*</span></label>
+                            <input type="text" id="student-name-input" placeholder="Enter name..." oninput="validateHomeConfiguration()">
+                        </div>
+                        <div class="form-row-split">
+                            <div class="form-group" style="flex:1; margin-bottom: 0;">
+                                <label>Grade Level <span style="color:var(--danger)">*</span></label>
+                                <select id="student-grade-input" onchange="validateHomeConfiguration()">
+                                    <option value="" disabled="" selected="">Select Grade</option>
+                                    <option value="Grade 1">Grade 1</option>
+                                    <option value="Grade 2">Grade 2</option>
+                                    <option value="Grade 3">Grade 3</option>
+                                    <option value="Grade 4">Grade 4</option>
+                                    <option value="Grade 5">Grade 5</option>
+                                    <option value="Grade 6">Grade 6</option>
+                                    <option value="Grade 7">Grade 7</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="flex:1; margin-bottom: 0;">
+                                <label>Class Section (Optional)</label>
+                                <input type="text" id="student-section-input" placeholder="e.g. Diamond">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label style="display:block; font-weight:700; font-size:0.8rem; margin-bottom:6px; color:#57606f;">Select Reading Level</label>
+                        <div class="radio-level-group">
+                            <label class="radio-lbl"><input type="radio" name="start-level" value="1" checked=""> Level 1</label>
+                            <label class="radio-lbl"><input type="radio" name="start-level" value="2"> Level 2</label>
+                            <label class="radio-lbl"><input type="radio" name="start-level" value="3"> Level 3</label>
+                        </div>
+                    </div>
+
+                    <button id="btn-start-adventure" class="action-submit-btn disabled" style="text-align:center; width:100%; border-radius:12px; margin-top:auto;" onclick="executeStartAppSequence()">
+                        START VOXSTORY ADVENTURE <i class="fa-solid fa-rocket"></i>
+                    </button>
+                </div>
+
+                <div id="screen-resume-prompt" class="hidden resume-prompt-layout">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                    <h3 class="feedback-headline">Unfinished Assessment Intercepted</h3>
+                    <p style="font-size:0.95rem; color:var(--text-dark);">Incomplete profile. Continue or clear memory to build fresh records?</p>
+                    <div class="resume-buttons-row">
+                        <button class="btn btn-secondary" onclick="discardSavedSessionAndReset()"><i class="fa-solid fa-trash-can"></i> Start New</button>
+                        <button class="btn btn-primary" onclick="confirmResumeSessionProgress()"><i class="fa-solid fa-play"></i> Resume Session</button>
+                    </div>
+                </div>
+
+                <div id="screen-gameplay" class="hidden" style="display: flex; flex-direction: column; flex: 1;">
+                    <div class="visualizer-canvas" id="student-image-canvas">
+                        <div class="reading-passage-box" id="student-passage-text">Loading passage...</div>
+                    </div>
+
+                    <div class="audio-nodes-rack">
+                        <button class="node-btn" id="btn-node-listen" onclick="triggerPlaybackSequence()" title="Listen to Mentor Audio"><i class="fa-solid fa-volume-high"></i></button>
+                        <button class="node-btn disabled" id="btn-node-mic" onclick="toggleWholePassageRecording()" title="Record Reading Feed"><i class="fa-solid fa-microphone"></i></button>
+                    </div>
+
+                    <div class="student-navigation">
+                        <button class="btn btn-secondary" onclick="confirmExitToPortal()"><i class="fa-solid fa-arrow-left"></i> Exit to Portal</button>
+                        <button class="action-submit-btn disabled" id="student-next-btn" onclick="commitPageProgressionStep()">Continue Reading <i class="fa-solid fa-arrow-right"></i></button>
+                    </div>
+                </div>
+
+                <div id="screen-adaptive-prompt" class="hidden adaptive-prompt-view">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <h3 class="feedback-headline" id="adaptive-prompt-headline">Great Job!</h3>
+                    <div class="recommendation-alert" id="adaptive-prompt-alert">You completed this reading passage.</div>
+                    <p style="font-size:0.9rem; color:var(--text-muted);">Let's continue discovering our story together!</p>
+                    <button class="action-submit-btn" style="width:100%; border-radius:12px; padding:12px; margin-top:auto;" onclick="acceptAdaptiveTransitionStep()">
+                        Continue Adventure <i class="fa-solid fa-circle-chevron-right"></i>
+                    </button>
+                </div>
+
+                <div id="screen-quiz" class="hidden quiz-body-layout">
+                    <div class="quiz-question-card">
+                        <h3 id="quiz-question-title">Loading question evaluation metrics...</h3>
+                        <div class="options-list-stack" id="quiz-options-wrapper"></div>
+                    </div>
+                    <div class="student-navigation" style="border-top: none; padding-top: 15px;">
+                        <button class="btn btn-secondary" onclick="confirmExitToPortal()"><i class="fa-solid fa-arrow-left"></i> Exit to Portal</button>
+                        <button class="action-submit-btn disabled" id="quiz-submit-btn" onclick="submitAssessmentAnswer()">Submit Selection <i class="fa-solid fa-circle-check"></i></button>
+                    </div>
+                </div>
+
+                <div id="screen-payoff" class="hidden payoff-dashboard-screen">
+                    <h2><i class="fa-solid fa-square-poll-vertical" style="color: var(--primary);"></i> Diagnostic Profile Report</h2>
+                    <div class="report-meta-text" id="payoff-student-meta">Metadata profile row</div>
+                    
+                    <table class="metric-table">
+                        <thead>
+                            <tr>
+                                <th>Stage</th>
+                                <th>Fluency</th>
+                                <th>Accuracy Ratio</th>
+                                <th>Comprehension Breakdown</th>
+                                <th>Classification</th>
+                            </tr>
+                        </thead>
+                        <tbody id="payoff-table-body"></tbody>
+                    </table>
+
+                    <div style="font-weight:700; font-size:0.78rem; margin-bottom:4px; color:var(--text-dark);">Instructional Recommendations Engine Output:</div>
+                    <div class="expert-rec-block" id="payoff-expert-recommendations">Loading expert rules...</div>
+
+                    <div style="font-weight:700; font-size:0.78rem; margin-bottom:4px; color:var(--text-dark);">Automated Analytical Running Record Output Log:</div>
+                    <div class="running-record-matrix-box" id="payoff-running-record-log">No track processed.</div>
+
+                    <div class="resume-buttons-row" style="margin-top:auto; gap:10px;">
+                        <button class="btn btn-primary" id="btn-continue-to-next" onclick="advanceToNextLevel()" style="display:none; flex:1;">
+        <i class="fa-solid fa-arrow-right"></i> Next Level
+    </button>
+    
+    <button class="btn btn-secondary" style="flex:1;" onclick="triggerNativeReportPrint()"><i class="fa-solid fa-file-pdf"></i> Export PDF Report</button>
+    <button class="btn btn-primary" style="flex:1;" onclick="triggerStructuralJsonExport()"><i class="fa-solid fa-file-code"></i> Export JSON Log</button>
+</div>
+
+            </div>
+        </div>
+    </div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script>
+        // --- GLOBAL CONFIGURABLE THRESHOLDS ENGINE SCHEMA (PHIL-IRI COMPLIANCE) ---
+        const PHIL_IRI_THRESHOLDS = {
+            INDEPENDENT:  { accuracy: 95, comprehension: 80 },
+            INSTRUCTIONAL: { accuracy: 85, comprehension: 59 },
+            // Under instructional fields maps instantly into Frustration thresholds
+        };
+
+        let db = {"story_1784252816179":{"id":"story_1784252816179","title":"The Great Adventure of Milo and Sam","levels":{"1":{"quizzes":[{"dimension":"literal","text":"Where does Milo live?","options":["The farm","The sea","The city"],"answer":"The farm"},{"dimension":"literal","text":"What does Sam have that helps him travel?","options":["A boat","Wings","A car"],"answer":"Wings"},{"dimension":"literal","text":"What does Milo eat on the farm?","options":["Fish","Grass","Bread"],"answer":"Grass"},{"dimension":"interpretive","text":"How does Milo feel about the sky?","options":["Scared","Happy","Sad"],"answer":"Happy"},{"dimension":"interpretive","text":"What does Sam want to do with Milo?","options":["Sleep","Play","Hide"],"answer":"Play"},{"dimension":"application","text":"If you have a friend, what is a fun thing to do?","options":["Play","Run","Both"],"answer":"Both"},{"dimension":"application","text":"What farm animal says \"Moo\"","options":["Carabao","Fish","Bird"],"answer":"Carabao"}],"pages":{"1":{"passage":"Milo the carabao lives on a green farm. The grass is soft and tall.","image":"https://i.ibb.co/ZpNycgR4/level-1-page-1-1.png","audio":"https://files.catbox.moe/7xdbuc.mp3"},"2":{"passage":"Sam the seagull lands on the farm. Sam has wings to fly far.","image":"https://i.ibb.co/twpqKNmr/level-1-page-2-1.png","audio":"https://files.catbox.moe/gkuzw0.mp3"},"3":{"passage":"Milo eats the grass. He looks at the blue, wide sky.","image":"https://i.ibb.co/SDTVQkgD/level-1-page-3-1.png","audio":"https://files.catbox.moe/bqbkar.mp3"},"4":{"passage":"Sam says, \"Hello, Milo! Let us play today.\" Milo nods his big head.","image":"https://i.ibb.co/9mtrjM5W/level-1-page-4-1.png","audio":"https://files.catbox.moe/cs7knp.mp3"},"5":{"passage":"They run on the mud. It is a very happy day for friends.","image":"https://i.ibb.co/xt8mcxwm/level-1-page-5-1.png","audio":"https://files.catbox.moe/0j30lu.mp3"}}},"2":{"quizzes":[{"dimension":"literal","text":"Where do Milo and Sam walk to?","options":["The river","The mountain","The school"],"answer":"The river"},{"dimension":"literal","text":"What color is the boat's sail?","options":["Blue","Red","Green"],"answer":"Red"},{"dimension":"literal","text":"Where does Sam sit?","options":["On the grass","In the water","On the boat"],"answer":"On the boat"},{"dimension":"interpretive","text":"Why is the boat moving?","options":["Milo pushes it","Sam flies it","It has a motor"],"answer":"Milo pushes it"},{"dimension":"interpretive","text":"How is the river water described?","options":["Clear","Dirty","Hot"],"answer":"Clear"},{"dimension":"application","text":"What do you wear if you go near water?","options":["Boots","Slippers","Shoes"],"answer":"Slippers"},{"dimension":"application","text":"If you see a small boat, what is it used for?","options":["Flying","Travel","Sleeping"],"answer":"Travel"}],"pages":{"1":{"passage":"Milo and Sam walk to the river. The water is cool and clear.","image":"https://i.ibb.co/NggwSbTL/level-2-page-1-1.png","audio":"https://files.catbox.moe/q2v6xu.mp3"},"2":{"passage":"Sam flies high above the trees. Milo walks slowly in the water.","image":"https://i.ibb.co/whKtpD8h/level-2-page-2.png","audio":"https://files.catbox.moe/njx0my.mp3"},"3":{"passage":"They see a small boat. The boat has a red sail in the sun.","image":"https://i.ibb.co/b5h3sp7V/level-2-page-3.png","audio":"https://files.catbox.moe/iur6on.mp3"},"4":{"passage":"Milo pushes the boat. Sam sits on top and watches the fish.","image":"https://i.ibb.co/ksR0jFts/level-2-page-4.png","audio":"https://files.catbox.moe/9alnza.mp3"},"5":{"passage":"The river flows to the sea. They feel excited for the journey.","image":"https://i.ibb.co/C5T33pYZ/level-2-page-5.png","audio":"https://files.catbox.moe/q0sqne.mp3"}}},"3":{"quizzes":[{"dimension":"literal","text":"What does Milo see on the sand?","options":["Shells","Rocks","Toys"],"answer":"Shells"},{"dimension":"literal","text":"What do they see far away?","options":["A house","A white ship","A tree"],"answer":" A white ship"},{"dimension":"literal","text":"How does Milo feel when waves get high?","options":["Happy","Scared","Angry"],"answer":"Happy"},{"dimension":"interpretive","text":"Why does Sam tell Milo \"Do not worry\"?","options":["To make him feel safe","To tell him to leave","To make him run"],"answer":"To make him feel safe"},{"dimension":"interpretive","text":"What makes Milo feel brave?","options":["Sam's help","The boat","The sand"],"answer":"Sam's help"},{"dimension":"application","text":" What do you do when you are scared?","options":["Cry","Ask for help","Run"],"answer":" Ask for help"},{"dimension":"application","text":"Where can you see big waves?","options":["In a cup","In the sea","In a pool"],"answer":"In the sea"}],"pages":{"1":{"passage":"The river meets the big blue sea. The waves are high and loud.","image":"https://i.ibb.co/gLkzdNDv/level-3-page-1.png","audio":"https://files.catbox.moe/3vzxbw.mp3"},"2":{"passage":"Milo is a bit scared. He holds the side of the boat tight.","image":"https://i.ibb.co/3y5YWdq0/level-3-page-2.png","audio":"https://files.catbox.moe/rgvo88.mp3"},"3":{"passage":"Sam flies down to help. \"Do not worry, Milo,\" says Sam.","image":"https://i.ibb.co/whG83VwQ/level-3-page-3.png","audio":"https://files.catbox.moe/thr217.mp3"},"4":{"passage":"They see shells on the sand. They see a white ship far away.","image":"https://i.ibb.co/zTvPHfL3/level-3-page-4.png","audio":"https://files.catbox.moe/r66u7o.mp3"},"5":{"passage":"Milo smiles at the sea. They are brave friends on a trip.","image":"https://i.ibb.co/9kh7yL6q/level-3-page-5.png","audio":"https://files.catbox.moe/eular9.mp3"}}}}}}; 
+        let currentStoryId = "";
+        let currentEditorLevel = 1;
+        let currentEditorPage = 1;
+
+        // Active Diagnostics State Vectors
+        let activeMode = 'assessment';
+        let currentStudentLevel = 1;
+        let currentStudentPage = 1;
+        let pageStartTime = 0;
+        let currentQuizIndex = 0;
+        let studentProfile = { name: "", grade: "", section: "" };
+        let adaptiveTrackedLevels = []; 
+        let trackingPerformanceCache = {};
+        let systemPendingRestorationContext = null;
+
+        // Audio Stream Tracking Parameters
+        let mediaRecorder;
+        let audioChunks = [];
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition = SpeechRecognition ? new SpeechRecognition() : null;
+        let recognizedPassageBuffer = "";
+
+        window.onload = function() {
+            initWorkspaceDatabase();
+            configureSpeechEngine();
+            if (document.body.classList.contains('standalone-student-mode')) {
+                document.getElementById('builder-panel')?.remove();
+            }
+        };
+
+        function initWorkspaceDatabase() {
+            const savedData = localStorage.getItem('phil_iri_studio_db_v6');
+            if (savedData) {
+                db = JSON.parse(savedData);
+            } else {
+                db["story_default_preset"] = createStandardPresetDataset();
+                localStorage.setItem('phil_iri_studio_db_v6', JSON.stringify(db));
+            }
+            currentStoryId = Object.keys(db)[0];
+            renderStorySelectorNode();
+            loadActiveStoryWorkspace(currentStoryId);
+            checkForExistingSessionProgress();
+        }
+
+        function createStandardPresetDataset() {
+            return {
+                id: "story_default_preset",
+                title: "The Golden Mountain Swift",
+                levels: {
+                    1: {
+                        quizzes: [
+                            { dimension: "literal", text: "What creature is the main focus of this initial stage?", options: ["The Golden Swift Bird", "A Cave Bat", "A Wild Squirrel"], answer: "The Golden Swift Bird" },
+                            { dimension: "literal", text: "Where does the golden swift bird construct its home nest safely?", options: ["High on cliff rock walls", "In low soft bushes", "Deep inside sandy ground holes"], answer: "High on cliff rock walls" },
+                            { dimension: "literal", text: "What structural fluid hardens to cement the moss elements together?", options: ["Twigs and leaves", "Mud clay matrices", "Special saliva drops"], answer: "Special saliva drops" },
+                            { dimension: "interpretive", text: "Why does the swift select steep mountain faces over valley forest floors?", options: ["To find cleaner drinking water resources", "To isolate its developing eggs safely from land predators", "To fly faster inside storm cloud fronts"], answer: "To isolate its developing eggs safely from land predators" },
+                            { dimension: "interpretive", text: "How does the bird behave during nest weaving operations?", options: ["Exhausted and careless", "Determined to create a highly durable shelter sanctuary", "Anxious about daily weather metrics"], answer: "Determined to create a highly durable shelter sanctuary" },
+                            { dimension: "application", text: "If you need to prepare a difficult school project, what execution process mirrors the swift?", options: ["Complete it as fast as possible without verification loops", "Utilize proper durable binding materials and careful execution focus", "Wait for secondary teams to complete the operations"], answer: "Utilize proper durable binding materials and careful execution focus" },
+                            { dimension: "application", text: "Why is selecting a highly secure initial environment vital for developing families?", options: ["It isolates developing metrics from external ecosystem hazards", "It makes gathering luxury items simpler", "It forces early isolation parameters onto social groups"], answer: "It isolates developing metrics from external ecosystem hazards" }
+                        ],
+                        pages: {
+                            1: { passage: "High up on the dark mountain side, a beautiful swift bird looked for a safe space to craft its clean nest. The high cliff was clear from wind and rain storms.", image: "", audio: "" },
+                            2: { passage: "The busy creature collected green moss items and small dry twigs from the valley forest floor below. It flew back up to the rock wall swiftly.", image: "", audio: "" },
+                            3: { passage: "Using its special saliva fluid drops, the bird glued the soft moss pieces onto the hard gray stone face. The liquid dried very fast like cement glue.", image: "", audio: "" },
+                            4: { passage: "For three full days, the tiny swift worked hard without stopping to rest. Soon a beautiful cup shaped house emerged on the high mountain edge safely.", image: "", audio: "" },
+                            5: { passage: "Two tiny white eggs were placed down inside the cozy warm moss lining. The mother bird sat down happily, looking over the vast green land below.", image: "", audio: "" }
+                        }
+                    },
+                    2: {
+                        quizzes: [
+                            { dimension: "literal", text: "What sudden critical hazard disrupted the mountain ridge ecosystem?", options: ["A massive rockslide event", "A sudden heavy wildfire", "An earthquake tremor wave"], answer: "A sudden heavy wildfire" },
+                            { dimension: "literal", text: "What did the mountain swift use to transport small water droplets?", options: ["Its small beak cup", "Its soft wing feathers", "Broad plant leaf folds"], answer: "Its small beak cup" },
+                            { dimension: "literal", text: "Which creature assisted by clearing dry woodland brush debris?", options: ["A heavy mountain deer", "An old gray land turtle", "A cautious wild badger"], answer: "An old gray land turtle" },
+                            { dimension: "interpretive", text: "Why did the forest animals unite instead of fleeing the area immediately?", options: ["They wanted to test a new game tracking loop", "They realized collective action was necessary to protect their shared habitat", "The mountain swift forced them to stay"], answer: "They realized collective action was necessary to protect their shared habitat" },
+                            { dimension: "interpretive", text: "What does the quick hardening of the mud line barriers suggest?", options: ["The sun heat intensely accelerates structural drying operations", "The animals used artificial building elements", "The turtle mixed a secret chemical solution"], answer: "The sun heat intensely accelerates structural drying operations" },
+                            { dimension: "application", text: "When an unexpected crisis impacts your neighborhood community, what is the best strategy?", options: ["Blame others and isolate yourself inside a room", "Organize a collaborative support group to tackle safety points together", "Ignore warning signs until the problem disappears"], answer: "Organize a collaborative support group to tackle safety points together" },
+                            { dimension: "application", text: "How does dividing labor benefit an organization during an urgent project run?", options: ["It ensures individual tasks are managed simultaneously by experts", "It allows most people to rest while one leader works", "It complicates communication channels unnecessarily"], answer: "It ensures individual tasks are managed simultaneously by experts" }
+                        ],
+                        pages: {
+                            1: { passage: "A sudden wildfire broke out across the lower valley forest line, sending thick gray smoke billowing up toward the swift bird nest hideout location.", image: "", audio: "" },
+                            2: { passage: "The brave bird flew down toward the mountain stream, dipping its small beak to gather water droplets to cool down the drying nest structure.", image: "", audio: "" },
+                            3: { passage: "An old gray land turtle saw the distress and immediately began shifting dry brush debris away from the base of the critical cliff slope area.", image: "", audio: "" },
+                            4: { passage: "Other forest animals soon joined the emergency efforts, scraping clear dirt barriers that successfully contained the advancing heat waves from climbing upward.", image: "", audio: "" },
+                            5: { passage: "By late afternoon, the crisis had passed completely, leaving the mountain community safe and the nested swift eggs perfectly untouched and secure.", image: "", audio: "" }
+                        }
+                    },
+                    3: {
+                        quizzes: [
+                            { dimension: "literal", text: "What unique physical trait distinguished the newborn swift chicks?", options: ["Golden tipped wing crest feathers", "Bright red beak lines", "Deep blue eye rings"], answer: "Golden tipped wing crest feathers" },
+                            { dimension: "literal", text: "What high altitude meteorological current did the birds master?", options: ["Thermal upward draft columns", "Low moisture pressure cells", "Coastal jet stream bands"], answer: "Thermal upward draft columns" },
+                            { dimension: "literal", text: "What celestial system guided their evening orientation?", options: ["The polar star constellation alignment", "Lunar eclipse shadow tracks", "Low horizontal solar glare rays"], answer: "The polar star constellation alignment" },
+                            { dimension: "interpretive", text: "What did the golden tipped wing crest feathers symbolize?", options: ["A genetic survival mutation adaptation advantage", "Their heritage lineage connection to the historic mountain protectors", "An aesthetic decoration requirement for flight tracking"], answer: "Their heritage lineage connection to the historic mountain protectors" },
+                            { dimension: "interpretive", text: "Why is mastering high altitude thermal drafts essential for swifts?", options: ["It lets them sleep while flying without burning energy resources", "It keeps them warm during heavy high altitude frost periods", "It allows them to avoid rain clouds completely"], answer: "It lets them sleep while flying without burning energy resources" },
+                            { dimension: "application", text: "As you transition into higher stages of academic study, how should you apply the swift concept?", options: ["Rely on basic baseline structures without pushing capabilities upward", "Master advanced conceptual frameworks to glide through complex processing issues smoothly", "Avoid difficult tasks unless a reward track is active"], answer: "Master advanced conceptual frameworks to glide through complex processing issues smoothly" },
+                            { dimension: "application", text: "Why is a reliable inner orientation mechanism vital for personal career execution goals?", options: ["It provides a stable direction framework despite fluctuating external environmental conditions", "It guarantees that no errors will ever occur in production lines", "It makes adaptation systems completely obsolete"], answer: "It provides a stable direction framework despite fluctuating external environmental conditions" }
+                        ],
+                        pages: {
+                            1: { passage: "Weeks later, the tiny eggs hatched into two marvelous chicks displaying unique golden tipped wing crest feathers that shimmered beautifully in morning light.", image: "", audio: "" },
+                            2: { passage: "The parent swifts trained their young meticulously, demonstrating how to capture evasive high altitude insects while balancing on turbulent mountain drafts.", image: "", audio: "" },
+                            3: { passage: "The juvenile birds quickly learned to navigate complex thermal upward draft columns, expanding their operational flight boundaries far beyond the valley limits.", image: "", audio: "" },
+                            4: { passage: "When autumn approached, the swifts prepared for a long transcontinental migration journey, relying on the polar star constellation alignment for night orientation guidance.", image: "", audio: "" },
+                            5: { passage: "Leaving their historic cliff sanctuary behind, they glided effortlessly into the open horizon, confident in the advanced aerial mastery they now possessed completely.", image: "", audio: "" }
+                        }
+                    }
+                }
+            };
+        }
+
+        function renderStorySelectorNode() {
+            const selector = document.getElementById('story-selector');
+            if(!selector) return;
+            selector.innerHTML = "";
+            Object.keys(db).forEach(id => {
+                const opt = document.createElement('option');
+                opt.value = id; opt.text = db[id].title;
+                selector.appendChild(opt);
+            });
+        }
+
+        function loadActiveStoryWorkspace(id) {
+    currentStoryId = id;
+
+    document.getElementById('welcome-story-title').textContent =
+        "📖 " + db[id].title;
+
+    // Display story cover on the home screen
+    const coverImg = document.getElementById('home-story-cover');
+
+const level1Pages = db[id].levels[1].pages;
+
+// Find the first page that has an image
+const firstPageWithImage = Object.values(level1Pages).find(
+    page => page.image && page.image.trim() !== ""
+);
+
+if (firstPageWithImage) {
+    coverImg.src = firstPageWithImage.image;
+    coverImg.style.display = "block";
+} else {
+    coverImg.style.display = "none";
+}
+
+    updateStudioQuizDropdownList();
+    loadEditorPageFields();
+    evaluateStudioValidationMatrix();
+        }
+
+        function updateStudioQuizDropdownList() {
+            const qSel = document.getElementById('quiz-question-selector');
+            if(!qSel) return;
+            qSel.innerHTML = "";
+            db[currentStoryId].levels[currentEditorLevel].quizzes.forEach((q, idx) => {
+                const opt = document.createElement('option');
+                opt.value = idx; opt.text = `Q${idx+1} [${q.dimension.toUpperCase()}]: ${q.text.substring(0,25)}...`;
+                qSel.appendChild(opt);
+            });
+            loadQuizQuestionEditor();
+        }
+
+        function setEditorLevel(lvl) {
+            currentEditorLevel = lvl;
+            const tabs = document.getElementById('editor-level-tabs').getElementsByClassName('tab');
+            for(let i=0; i<tabs.length; i++) tabs[i].classList.remove('active');
+            tabs[lvl-1].classList.add('active');
+            updateStudioQuizDropdownList();
+            loadEditorPageFields();
+            evaluateStudioValidationMatrix();
+            syncPreviewPlayerWithBuilder();
+        }
+
+        function setEditorPage(pg) {
+            currentEditorPage = pg;
+            const tabs = document.getElementById('editor-page-tabs').getElementsByClassName('tab');
+            for(let i=0; i<tabs.length; i++) tabs[i].classList.remove('active');
+            tabs[pg-1].classList.add('active');
+            loadEditorPageFields();
+            evaluateStudioValidationMatrix();
+            syncPreviewPlayerWithBuilder();
+        }
+function clearCurrentAudio() {
+    if (confirm("Are you sure you want to remove this audio track?")) {
+        // Reset the audio data in the database for the current page
+        db[currentStoryId].levels[currentEditorLevel].pages[currentEditorPage].audio = "";
+        
+        // Clear the visual preview
+        const audioPlayer = document.getElementById('editor-audio-preview');
+        audioPlayer.src = "";
+        
+        // Save the change to localStorage
+        localStorage.setItem('phil_iri_studio_db_v6', JSON.stringify(db));
+        
+        // Re-run validation to ensure the UI reflects the change
+        evaluateStudioValidationMatrix();
+        
+        alert("Audio track cleared successfully.");
+    }
+}
+function clearCurrentImage() {
+    if (confirm("Are you sure you want to remove this illustration?")) {
+        // Clear the image data in the database
+        db[currentStoryId].levels[currentEditorLevel].pages[currentEditorPage].image = "";
+        
+        // Reset the text input field
+        document.getElementById('edit-image').value = "";
+        
+        // Trigger the standard save function to update localStorage
+        saveCurrentPageData();
+        
+        // Refresh the preview canvas to ensure the image is removed from the view
+        const canvas = document.getElementById('student-image-canvas');
+        canvas.style.backgroundImage = "none";
+        
+        alert("Illustration cleared successfully.");
+    }
+}
+        /* --- SYNCHRONIZATION CONTROLLER: STUDIO TAB SWITCH MATCH MATRIX --- */
+        function syncPreviewPlayerWithBuilder() {
+            const welcomeView = document.getElementById('screen-welcome');
+            if (!welcomeView.classList.contains('hidden')) {
+                const radios = document.getElementsByName('start-level');
+                for (let i = 0; i < radios.length; i++) {
+                    radios[i].checked = (parseInt(radios[i].value) === currentEditorLevel);
+                }
+            }
+
+            const gameplayView = document.getElementById('screen-gameplay');
+            if (!gameplayView.classList.contains('hidden')) {
+                currentStudentLevel = currentEditorLevel;
+                currentStudentPage = currentEditorPage;
+                loadStudentPassageTrackingInterface();
+            }
+
+            const quizView = document.getElementById('screen-quiz');
+            if (!quizView.classList.contains('hidden')) {
+                currentStudentLevel = currentEditorLevel;
+                currentQuizIndex = 0; 
+                renderComprehensionQuizNode();
+            }
+
+            updateStudentHeaderDisplayState();
+        }
+
+        function loadEditorPageFields() {
+            const page = db[currentStoryId].levels[currentEditorLevel].pages[currentEditorPage];
+            document.getElementById('edit-passage').value = page.passage || "";
+            document.getElementById('edit-image').value = page.image || "";
+            document.getElementById('edit-audio-url').value = page.audio || "";
+	    const audioPreview = document.getElementById('editor-audio-preview');
+    	    audioPreview.src = page.audio || "";
+            audioPreview.style.display = (page.audio && page.audio.length > 0) ? 'block' : 'none';
+            updateLiveWordGaugeDisplay(page.passage || "");
+        }
+	function updateLiveWordGaugeDisplay(text) {
+    		const count = text.split(/\s+/).filter(Boolean).length;
+    		const gauge = document.getElementById('word-count-gauge');
+    		if(!gauge) return;
+    
+   		 // Updated constraints: 10-20 words
+   		 if(count >= 10 && count <= 20) {
+        		gauge.className = "word-counter-badge gauge-recommended";
+        		gauge.innerHTML = `<i class="fa-solid fa-circle-check"></i> ${count} words &bull; Ideal (10-20)`;
+    		} else if (count === 0) {
+        		gauge.className = "word-counter-badge gauge-warning";
+        		gauge.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Empty`;
+    		} else {
+        		gauge.className = "word-counter-badge gauge-warning";
+        		gauge.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> ${count} words &bull; Use 10-20`;
+    		}
+	}
+
+        function saveCurrentPageData() {
+            const page = db[currentStoryId].levels[currentEditorLevel].pages[currentEditorPage];
+            page.passage = document.getElementById('edit-passage').value;
+            page.image = document.getElementById('edit-image').value;
+	    page.audio = document.getElementById('edit-audio-url').value;
+            updateLiveWordGaugeDisplay(page.passage);
+            localStorage.setItem('phil_iri_studio_db_v6', JSON.stringify(db));
+            evaluateStudioValidationMatrix();
+            
+            // Real-time text update sync if student workflow is open on screen
+            const gameplayView = document.getElementById('screen-gameplay');
+            if (!gameplayView.classList.contains('hidden') && currentStudentLevel === currentEditorLevel && currentStudentPage === currentEditorPage) {
+                document.getElementById('student-passage-text').textContent = page.passage || "";
+            }
+        }
+
+        function loadQuizQuestionEditor() {
+            const idx = document.getElementById('quiz-question-selector').value;
+            if(!idx || idx === "") return;
+            const q = db[currentStoryId].levels[currentEditorLevel].quizzes[idx];
+            document.getElementById('quiz-edit-text').value = q.text;
+            document.getElementById('quiz-edit-options').value = q.options.join(', ');
+            document.getElementById('quiz-edit-answer').value = q.answer;
+        }
+
+        function saveQuizQuestionData() {
+            const idx = document.getElementById('quiz-question-selector').value;
+            if(!idx || idx === "") return;
+            const q = db[currentStoryId].levels[currentEditorLevel].quizzes[idx];
+            q.text = document.getElementById('quiz-edit-text').value;
+            q.options = document.getElementById('quiz-edit-options').value.split(',').map(s=>s.trim());
+            q.answer = document.getElementById('quiz-edit-answer').value;
+            localStorage.setItem('phil_iri_studio_db_v6', JSON.stringify(db));
+            evaluateStudioValidationMatrix();
+        }
+
+        function handleImageUpload(input) {
+            if(input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('edit-image').value = e.target.result;
+                    saveCurrentPageData();
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+function handleAudioUpload(input) {
+    if(input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            // Clear the URL text box if a file is uploaded
+            document.getElementById('edit-audio-url').value = ""; 
+            
+            db[currentStoryId].levels[currentEditorLevel].pages[currentEditorPage].audio = e.target.result;
+            document.getElementById('editor-audio-preview').src = e.target.result;
+            document.getElementById('editor-audio-preview').style.display = 'block';
+            
+            localStorage.setItem('phil_iri_studio_db_v6', JSON.stringify(db));
+            evaluateStudioValidationMatrix();
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+        function createNewStoryPrompt() {
+            const title = prompt("Enter new story framework name:");
+            if(!title) return;
+            const blueprint = createStandardPresetDataset();
+            blueprint.id = "story_" + Date.now(); blueprint.title = title;
+            db[blueprint.id] = blueprint;
+            localStorage.setItem('phil_iri_studio_db_v6', JSON.stringify(db));
+            renderStorySelectorNode();
+            loadActiveStoryWorkspace(blueprint.id);
+        }
+
+        function renameCurrentStory() {
+            const title = prompt("Modify project title:", db[currentStoryId].title);
+            if(!title) return;
+            db[currentStoryId].title = title;
+            localStorage.setItem('phil_iri_studio_db_v6', JSON.stringify(db));
+            renderStorySelectorNode();
+            loadActiveStoryWorkspace(currentStoryId);
+        }
+
+        function deleteCurrentStory() {
+            if(Object.keys(db).length <= 1) return alert("System requires retention of at least one project block.");
+            if(confirm("Confirm structural deletion of active story board?")) {
+                delete db[currentStoryId];
+                localStorage.setItem('phil_iri_studio_db_v6', JSON.stringify(db));
+                renderStorySelectorNode();
+                loadActiveStoryWorkspace(Object.keys(db)[0]);
+            }
+        }
+
+	function evaluateStudioValidationMatrix() {
+            const story = db[currentStoryId];
+            const btn = document.getElementById('btn-studio-compile');
+            if(!story || !btn) return;
+
+            let check = { textOk: true, questionsValid: true, levelsComplete: true };
+            
+            for(let l=1; l<=3; l++) {
+                const lvl = story.levels[l];
+                if(!lvl) { check.levelsComplete = false; break; }
+                
+                for(let p=1; p<=5; p++) {
+                    const passage = lvl.pages[p]?.passage || "";
+                    const wordCount = passage.trim().split(/\s+/).filter(Boolean).length;
+                    
+                    // VALIDATION: Each page must be between 10 and 20 words
+                    if(wordCount < 10 || wordCount > 20) {
+                        check.textOk = false;
+                    }
+                }
+                
+                let lCount = 0, iCount = 0, aCount = 0;
+                lvl.quizzes.forEach(q => {
+                    if(q.dimension === 'literal') lCount++;
+                    if(q.dimension === 'interpretive') iCount++;
+                    if(q.dimension === 'application') aCount++;
+                });
+                if(lCount !== 3 || iCount !== 2 || aCount !== 2 || lvl.quizzes.length !== 7) check.questionsValid = false;
+            }
+
+            const passed = (check.textOk && check.questionsValid && check.levelsComplete);
+            if(passed) {
+                btn.className = "btn btn-success";
+                btn.innerHTML = `<i class="fa-solid fa-file-export"></i> Compile & Export Standalone Engine`;
+            } else {
+                btn.className = "btn btn-warning";
+                btn.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Export (Ensure 10-20 words/page & 7 questions)`;
+            }
+            return passed;
+        }
+
+        /* --- CONTROLLER: SESSION PARAMETERS & PERSISTENCE --- */
+        function selectAppMode(mode) {
+            activeMode = mode;
+            document.getElementById('mode-card-assessment').classList.remove('selected');
+            document.getElementById('mode-card-practice').classList.remove('selected');
+            document.getElementById('mode-card-' + mode).classList.add('selected');
+            validateHomeConfiguration();
+        }
+
+        function validateHomeConfiguration() {
+            const name = document.getElementById('student-name-input').value.trim();
+            const grade = document.getElementById('student-grade-input').value;
+            const btn = document.getElementById('btn-start-adventure');
+            if(name !== "" && grade !== "") btn.classList.remove('disabled');
+            else btn.classList.add('disabled');
+        }
+
+        function checkForExistingSessionProgress() {
+            const cache = localStorage.getItem('phil_iri_active_session_run_v6');
+            if (cache) {
+                try {
+                    const restored = JSON.parse(cache);
+                    if (restored.currentStoryId === currentStoryId && restored.activeMode === 'assessment') {
+                        systemPendingRestorationContext = restored;
+                        switchApplicationViewport('screen-resume-prompt');
+                    }
+                } catch (e) { console.error("Session tracking token read failure", e); }
+            }
+        }
+
+        function confirmResumeSessionProgress() {
+            if (!systemPendingRestorationContext) return;
+            const ctx = systemPendingRestorationContext;
+            activeMode = ctx.activeMode;
+            currentStudentLevel = ctx.currentStudentLevel;
+            currentStudentPage = ctx.currentStudentPage;
+            studentProfile = ctx.studentProfile;
+            adaptiveTrackedLevels = ctx.adaptiveTrackedLevels;
+            trackingPerformanceCache = ctx.trackingPerformanceCache;
+            currentQuizIndex = ctx.currentQuizIndex;
+
+            document.getElementById('student-name-input').value = studentProfile.name;
+            document.getElementById('student-grade-input').value = studentProfile.grade;
+            document.getElementById('student-section-input').value = studentProfile.section;
+            validateHomeConfiguration(); selectAppMode(activeMode);
+
+            switchApplicationViewport(ctx.checkpointScreen);
+            if(ctx.checkpointScreen === 'screen-gameplay') loadStudentPassageTrackingInterface();
+            else if(ctx.checkpointScreen === 'screen-quiz') renderComprehensionQuizNode();
+            else if(ctx.checkpointScreen === 'screen-adaptive-prompt') triggerEncouragingPromptScreen(true);
+            systemPendingRestorationContext = null;
+        }
+
+        function discardSavedSessionAndReset() {
+            clearSavedSessionState(); systemPendingRestorationContext = null;
+            switchApplicationViewport('screen-welcome');
+        }
+
+        function confirmExitToPortal() {
+            if (activeMode === 'assessment') {
+                if (!confirm("Are you sure you want to drop out of this active evaluation? Your session markers will be retained as a recoverable checkpoint.")) return;
+            }
+            window.speechSynthesis.cancel();
+            switchApplicationViewport('screen-welcome');
+        }
+
+        function executeStartAppSequence() {
+            if(document.getElementById('btn-start-adventure').classList.contains('disabled')) return;
+            
+            studentProfile.name = document.getElementById('student-name-input').value.trim();
+            studentProfile.grade = document.getElementById('student-grade-input').value;
+            studentProfile.section = document.getElementById('student-section-input').value.trim();
+            
+            const lvlRadios = document.getElementsByName('start-level');
+            for(let i=0; i<lvlRadios.length; i++) {
+                if(lvlRadios[i].checked) currentStudentLevel = parseInt(lvlRadios[i].value);
+            }
+
+            currentStudentPage = 1;
+            adaptiveTrackedLevels = [currentStudentLevel];
+            trackingPerformanceCache = {};
+            initPerformanceCacheForLevel(currentStudentLevel);
+            
+            switchApplicationViewport('screen-gameplay');
+            loadStudentPassageTrackingInterface();
+        }
+
+        function initPerformanceCacheForLevel(lvl) {
+            trackingPerformanceCache[lvl] = {
+                rawTotalWordsAcrossPages: 0,
+                rawTotalTimeAcrossPages: 0,
+                pageAccuracyRecords: [],
+                comprehensionAnswers: [],
+                runningRecordMarkups: [],
+                miscueStats: { substitutions: 0, omissions: 0, insertions: 0, correct: 0 }
+            };
+        }
+
+        function switchApplicationViewport(screenId) {
+            ['screen-welcome', 'screen-resume-prompt', 'screen-gameplay', 'screen-adaptive-prompt', 'screen-quiz', 'screen-payoff'].forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+            document.getElementById(screenId).classList.remove('hidden');
+            updateStudentHeaderDisplayState();
+        }
+
+        function updateStudentHeaderDisplayState() {
+            const card = document.getElementById('student-adventure-card');
+            const title = document.getElementById('student-header-title');
+            const step = document.getElementById('student-header-step');
+            
+            card.className = "student-card";
+            const currentView = document.querySelector('.student-body > div:not(.hidden)');
+            if (!currentView) return;
+            
+            if(currentView.id === 'screen-welcome') {
+                title.textContent = "Phil-IRI Interactive Reader"; step.textContent = "Portal Setup";
+            } else if(currentView.id === 'screen-resume-prompt') {
+                title.textContent = "Phil-IRI Portal Recovery"; step.textContent = "Restore Checkpoint";
+            } else {
+                title.textContent = db[currentStoryId].title + ` [${activeMode.toUpperCase()}]`;
+                card.classList.add(`lvl-${currentStudentLevel}-border`);
+                
+                if(currentView.id === 'screen-gameplay') step.textContent = `Level ${currentStudentLevel}; Page ${currentStudentPage}/5`;
+                else if(currentView.id === 'screen-quiz') step.textContent = `Level ${currentStudentLevel} Checkpoint; Q${currentQuizIndex+1}/7`;
+                else if(currentView.id === 'screen-adaptive-prompt') step.textContent = "Progress Validation";
+                else if(currentView.id === 'screen-payoff') step.textContent = "Diagnostic Analytical Summary";
+            }
+        }
+
+        function saveSessionProgressState() {
+            if (activeMode === 'practice') return; 
+            const state = {
+                currentStoryId, activeMode, currentStudentLevel, currentStudentPage,
+                studentProfile, adaptiveTrackedLevels, trackingPerformanceCache,
+                checkpointScreen: document.querySelector('.student-body > div:not(.hidden)').id, currentQuizIndex
+            };
+            localStorage.setItem('phil_iri_active_session_run_v6', JSON.stringify(state));
+        }
+
+        function clearSavedSessionState() { localStorage.removeItem('phil_iri_active_session_run_v6'); }
+
+        /* --- ENGINE: ORAL READING & ACCURATE ALIGNMENT MAPPING --- */
+function loadStudentPassageTrackingInterface() {
+    document.getElementById('btn-node-mic').classList.add('disabled');
+    document.getElementById('student-next-btn').classList.add('disabled');
+    
+    const pageData = db[currentStoryId].levels[currentStudentLevel].pages[currentStudentPage];
+    
+    // --- UPDATED RENDERING LOGIC ---
+    const passage = pageData.passage || "";
+    const passageDiv = document.getElementById('student-passage-text');
+    
+    // Split passage into words and wrap each in a span for individual targeting
+    passageDiv.innerHTML = passage.split(/\s+/).filter(Boolean).map((word, index) => 
+        `<span id="word-${index}" class="read-word">${word}</span>`
+    ).join(' ');
+    // ---------------------------------
+    
+    const canvas = document.getElementById('student-image-canvas');
+    canvas.style.backgroundImage = pageData.image ? `url('${pageData.image}')` : "none";
+    
+    updateStudentHeaderDisplayState();
+    pageStartTime = Date.now();
+    
+    // Assessment mode allows capturing oral recording track directly
+    document.getElementById('btn-node-mic').classList.remove('disabled');
+}
+
+        function triggerPlaybackSequence() {
+            const pageData = db[currentStoryId].levels[currentStudentLevel].pages[currentStudentPage];
+            if(pageData.audio && pageData.audio.trim() !== "") {
+                new Audio(pageData.audio).play();
+            } else {
+                window.speechSynthesis.cancel();
+                window.speechSynthesis.speak(new SpeechSynthesisUtterance(pageData.passage));
+            }
+            if(activeMode === 'practice') document.getElementById('btn-node-mic').classList.remove('disabled');
+        }
+function configureSpeechEngine() {
+    if(!recognition) return;
+    recognition.continuous = true; recognition.interimResults = false; recognition.lang = 'en-US'; recognition.maxAlternatives = 3;
+    
+    // We need a persistent index to track progress through the spans
+    window.currentWordHighlightIndex = 0;
+recognition.onresult = function(event) {
+    let segment = "";
+    for (let i = event.resultIndex; i < event.results.length; ++i) {
+    if (event.results[i].isFinal) {
+
+        const result = event.results[i];
+
+        console.log("-----------");
+        console.log("Recognition Alternatives:");
+
+        for (let a = 0; a < result.length; a++) {
+            console.log(
+                `Alternative ${a}:`,
+                result[a].transcript,
+                `(confidence: ${result[a].confidence})`
+            );
+        }
+
+        segment += result[0].transcript + " ";
+    }
+}
+    
+    recognizedPassageBuffer += segment;
+
+    // Remove periods, commas, and other punctuation
+    const punctuationRegex = /[.,!?']/g;
+
+    // Process spoken words
+    const spokenWords = segment.trim().toLowerCase().split(/\s+/).map(w => w.replace(punctuationRegex, "").trim());
+
+    // Debug: log cleaned spoken words
+    console.log("Cleaned spoken words:", spokenWords);
+
+    // Compare with span words
+    spokenWords.forEach(word => {
+        let el = document.getElementById(`word-${window.currentWordHighlightIndex}`);
+        if (!el) return;
+
+        // Clean span text
+        let spanText = el.textContent.toLowerCase().replace(punctuationRegex, "").trim();
+
+        // Log for debugging
+        console.log(`Span text: "${spanText}", Spoken: "${word}"`);
+
+        if (spanText === word) {
+            el.classList.add('spoken-correct');
+            window.currentWordHighlightIndex++;
+        }
+    });
+};
+}
+        function toggleWholePassageRecording() {
+            const micBtn = document.getElementById('btn-node-mic');
+            if(mediaRecorder && mediaRecorder.state === "recording") {
+                mediaRecorder.stop(); if(recognition) recognition.stop();
+                micBtn.classList.remove('recording');
+                document.getElementById('student-next-btn').classList.remove('disabled');
+            } else {
+                recognizedPassageBuffer = "";
+                navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+                    audioChunks = []; mediaRecorder = new MediaRecorder(stream);
+                    mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+                    mediaRecorder.start();
+                    if(recognition) recognition.start();
+                    micBtn.classList.add('recording');
+                    pageStartTime = Date.now(); 
+                }).catch(err => {
+                    // Simulation Fallback Track
+                    pageStartTime = Date.now(); micBtn.classList.add('recording');
+                    setTimeout(() => {
+                        recognizedPassageBuffer = db[currentStoryId].levels[currentStudentLevel].pages[currentStudentPage].passage;
+                        micBtn.classList.remove('recording');
+                        document.getElementById('student-next-btn').classList.remove('disabled');
+                    }, 2000);
+                });
+            }
+        }
+
+function normalizeReadingText(text) {
+    return text
+        .toLowerCase()
+        // Remove ALL punctuation
+        .replace(/[^\w\s]|_/g, "")
+        // Collapse multiple spaces
+        .replace(/\s+/g, " ")
+        .trim();
+}
+        function commitPageProgressionStep() {
+            if(document.getElementById('student-next-btn').classList.contains('disabled')) return;
+            calculatePassagePerformanceMetrics();
+            
+            if(currentStudentPage < 5) {
+                currentStudentPage++; saveSessionProgressState();
+                loadStudentPassageTrackingInterface();
+            } else {
+                currentQuizIndex = 0; saveSessionProgressState();
+                switchApplicationViewport('screen-quiz');
+                renderComprehensionQuizNode();
+            }
+        }
+function areEquivalentWords(expected, actual) {
+    expected = expected.toLowerCase();
+    actual = actual.toLowerCase();
+
+    // Exact match
+    if (expected === actual) return true;
+
+    // Remove apostrophes
+    expected = expected.replace(/'/g, "");
+    actual = actual.replace(/'/g, "");
+
+    if (expected === actual) return true;
+
+    // Singular / plural
+    if (expected + "s" === actual) return true;
+    if (actual + "s" === expected) return true;
+
+    // Common verb endings
+    if (expected + "ed" === actual) return true;
+    if (actual + "ed" === expected) return true;
+
+    if (expected + "ing" === actual) return true;
+    if (actual + "ing" === expected) return true;
+// Accept a one-letter transcription difference for words
+// that are at least 4 letters long.
+if (
+    expected.length >= 4 &&
+    actual.length >= 4 &&
+    levenshteinDistance(expected, actual) <= 1
+) {
+    return true;
+}
+    return false;
+}
+function levenshteinDistance(a, b) {
+    const matrix = Array.from({ length: b.length + 1 }, (_, i) => [i]);
+
+    for (let j = 0; j <= a.length; j++) {
+        matrix[0][j] = j;
+    }
+
+    for (let i = 1; i <= b.length; i++) {
+        for (let j = 1; j <= a.length; j++) {
+
+            if (b[i - 1] === a[j - 1]) {
+                matrix[i][j] = matrix[i - 1][j - 1];
+            } else {
+                matrix[i][j] = Math.min(
+                    matrix[i - 1][j] + 1,
+                    matrix[i][j - 1] + 1,
+                    matrix[i - 1][j - 1] + 1
+                );
+            }
+        }
+    }
+
+    return matrix[b.length][a.length];
+}
+function alignWords(targetWords, spokenWords) {
+    const m = targetWords.length;
+    const n = spokenWords.length;
+
+    // Build LCS table
+    const dp = Array.from({ length: m + 1 }, () =>
+        Array(n + 1).fill(0)
+    );
+
+    for (let i = m - 1; i >= 0; i--) {
+        for (let j = n - 1; j >= 0; j--) {
+            if (areEquivalentWords(targetWords[i], spokenWords[j])) {
+                dp[i][j] = dp[i + 1][j + 1] + 1;
+            } else {
+                dp[i][j] = Math.max(dp[i + 1][j], dp[i][j + 1]);
+            }
+        }
+    }
+
+    const result = [];
+
+    let i = 0;
+    let j = 0;
+
+    while (i < m && j < n) {
+
+        if (targetWords[i] === spokenWords[j]) {
+            result.push({
+                type: "correct",
+                expected: targetWords[i],
+                actual: spokenWords[j]
+            });
+            i++;
+            j++;
+        }
+        else if (dp[i + 1][j] >= dp[i][j + 1]) {
+            result.push({
+                type: "omission",
+                expected: targetWords[i],
+                actual: null
+            });
+            i++;
+        }
+        else {
+            result.push({
+                type: "insertion",
+                expected: null,
+                actual: spokenWords[j]
+            });
+            j++;
+        }
+    }
+
+    while (i < m) {
+        result.push({
+            type: "omission",
+            expected: targetWords[i],
+            actual: null
+        });
+        i++;
+    }
+
+    while (j < n) {
+        result.push({
+            type: "insertion",
+            expected: null,
+            actual: spokenWords[j]
+        });
+        j++;
+    }
+
+    // Convert omission immediately followed by insertion
+    // into a substitution.
+    const aligned = [];
+
+    for (let k = 0; k < result.length; k++) {
+
+        const current = result[k];
+        const next = result[k + 1];
+
+        if (
+            current?.type === "omission" &&
+            next?.type === "insertion"
+        ) {
+            aligned.push({
+                type: "substitution",
+                expected: current.expected,
+                actual: next.actual
+            });
+            k++;
+        }
+        else {
+            aligned.push(current);
+        }
+    }
+
+    return aligned;
+}
+
+function calculatePassagePerformanceMetrics() {
+    const pageData = db[currentStoryId].levels[currentStudentLevel].pages[currentStudentPage];
+
+    const targetWords = normalizeReadingText(pageData.passage)
+        .split(/\s+/)
+        .filter(Boolean);
+
+    const spokenWords = normalizeReadingText(
+        recognizedPassageBuffer || ""
+    )
+        .split(/\s+/)
+        .filter(Boolean);
+
+    const readingDurationSeconds = (Date.now() - pageStartTime) / 1000;
+    const totalTargetCount = targetWords.length;
+
+    const cache = trackingPerformanceCache[currentStudentLevel];
+    cache.rawTotalWordsAcrossPages += totalTargetCount;
+    cache.rawTotalTimeAcrossPages += Math.max(readingDurationSeconds, 1);
+
+  let correct = 0;
+let omissions = 0;
+let insertions = 0;
+let substitutions = 0;
+
+let visualMarkup = "";
+
+const alignment = alignWords(targetWords, spokenWords);
+
+alignment.forEach(item => {
+
+    switch (item.type) {
+
+        case "correct":
+            correct++;
+            cache.miscueStats.correct++;
+
+            visualMarkup +=
+                `<span class="rr-word rr-ok">${item.expected}</span> `;
+            break;
+
+        case "omission":
+            omissions++;
+            cache.miscueStats.omissions++;
+
+            visualMarkup +=
+                `<span class="rr-word rr-om">${item.expected}</span> `;
+            break;
+
+        case "insertion":
+            insertions++;
+            cache.miscueStats.insertions++;
+
+            visualMarkup +=
+                `<span class="rr-word rr-ins">+${item.actual}</span> `;
+            break;
+
+        case "substitution":
+            substitutions++;
+            cache.miscueStats.substitutions =
+                (cache.miscueStats.substitutions || 0) + 1;
+
+            visualMarkup +=
+                `<span class="rr-word rr-sub">${item.expected} → ${item.actual}</span> `;
+            break;
+    }
+
+});
+
+    const totalErrors = omissions + substitutions;
+
+    const accuracy =
+        totalTargetCount > 0
+            ? Math.round(((totalTargetCount - totalErrors) / totalTargetCount) * 100)
+            : 100;
+
+    cache.pageAccuracyRecords.push(Math.max(0, accuracy));
+    cache.runningRecordMarkups.push(visualMarkup);
+}
+        /* --- ENGINE: COMPREHENSION BLOCK EVALUATION --- */
+        function renderComprehensionQuizNode() {
+            const quizArray = db[currentStoryId].levels[currentStudentLevel].quizzes;
+            const q = quizArray[currentQuizIndex];
+            
+            document.getElementById('quiz-question-title').textContent = q.text;
+            document.getElementById('quiz-submit-btn').classList.add('disabled');
+            updateStudentHeaderDisplayState();
+
+            const wrapper = document.getElementById('quiz-options-wrapper');
+            wrapper.innerHTML = "";
+            const badge = document.createElement('span');
+            badge.className = `quiz-dim-tag dim-${q.dimension}`; badge.textContent = q.dimension;
+            wrapper.appendChild(badge);
+
+            q.options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = "quiz-option"; btn.textContent = opt;
+                btn.onclick = () => {
+                    Array.from(wrapper.getElementsByClassName('quiz-option')).forEach(b=>b.classList.remove('selected'));
+                    btn.classList.add('selected');
+                    document.getElementById('quiz-submit-btn').classList.remove('disabled');
+                };
+                wrapper.appendChild(btn);
+            });
+        }
+
+        function submitAssessmentAnswer() {
+            if(document.getElementById('quiz-submit-btn').classList.contains('disabled')) return;
+            const selected = document.querySelector('#quiz-options-wrapper .quiz-option.selected').textContent.trim();
+            const quizArray = db[currentStoryId].levels[currentStudentLevel].quizzes;
+            const q = quizArray[currentQuizIndex];
+
+            const isCorrect = (selected === q.answer.trim());
+            trackingPerformanceCache[currentStudentLevel].comprehensionAnswers.push({
+                dimension: q.dimension, correct: isCorrect
+            });
+
+            if(currentQuizIndex < quizArray.length - 1) {
+                currentQuizIndex++; saveSessionProgressState();
+                renderComprehensionQuizNode();
+            } else {
+                triggerEncouragingPromptScreen(activeMode === 'assessment');
+            }
+        }
+
+        /* --- ENGINE: ADAPTIVE PROMPTS & MOTIVATION STATES --- */
+        function triggerEncouragingPromptScreen(isAssessmentRoute = true) {
+            const headline = document.getElementById('adaptive-prompt-headline');
+            const alertBox = document.getElementById('adaptive-prompt-alert');
+            const actionBtn = document.querySelector('#screen-adaptive-prompt .action-submit-btn');
+
+            if (!isAssessmentRoute) {
+                headline.textContent = "Great job!";
+                alertBox.innerHTML = "✨ You completed this reading passage segment! ✨";
+                actionBtn.innerHTML = `Return to Main Portal <i class="fa-solid fa-house"></i>`;
+                actionBtn.onclick = resetStudentAdventureWorkflow;
+                switchApplicationViewport('screen-adaptive-prompt');
+                return;
+            }
+
+            // Calculate Metrics against Configurable Threshold Schema Block
+            const cache = trackingPerformanceCache[currentStudentLevel];
+            const avgAccuracy = cache.pageAccuracyRecords.reduce((a,b)=>a+b,0) / cache.pageAccuracyRecords.length;
+            const compPercent = (cache.comprehensionAnswers.filter(a=>a.correct).length / 7) * 100;
+
+            let status = "Frustration";
+            if(avgAccuracy >= PHIL_IRI_THRESHOLDS.INDEPENDENT.accuracy && compPercent >= PHIL_IRI_THRESHOLDS.INDEPENDENT.comprehension) status = "Independent";
+            else if(avgAccuracy >= PHIL_IRI_THRESHOLDS.INSTRUCTIONAL.accuracy && compPercent >= PHIL_IRI_THRESHOLDS.INSTRUCTIONAL.comprehension) status = "Instructional";
+
+            if(status === "Independent" && currentStudentLevel < 3 && !adaptiveTrackedLevels.includes(currentStudentLevel + 1)) {
+                const next = currentStudentLevel + 1;
+                headline.textContent = "Excellent effort!";
+                alertBox.innerHTML = "🎉 You're ready for the next level challenge! 🎉";
+                currentStudentLevel = next; currentStudentPage = 1;
+                adaptiveTrackedLevels.push(next); initPerformanceCacheForLevel(next);
+                actionBtn.innerHTML = `Advance Level Track <i class="fa-solid fa-rocket"></i>`;
+                actionBtn.onclick = acceptAdaptiveTransitionStep;
+                saveSessionProgressState();
+            } else if(status === "Frustration" && currentStudentLevel > 1 && !adaptiveTrackedLevels.includes(currentStudentLevel - 1)) {
+                const prev = currentStudentLevel - 1;
+                headline.textContent = "Great job!";
+                alertBox.innerHTML = "✨ Let's look over another configuration puzzle track! ✨";
+                currentStudentLevel = prev; currentStudentPage = 1;
+                adaptiveTrackedLevels.push(prev); initPerformanceCacheForLevel(prev);
+                actionBtn.innerHTML = `Continue Reading Quest <i class="fa-solid fa-circle-chevron-right"></i>`;
+                actionBtn.onclick = acceptAdaptiveTransitionStep;
+                saveSessionProgressState();
+            } else {
+                // Convergence node reached: Generate singular diagnostic summary report
+                headline.textContent = "Excellent Effort!";
+                alertBox.innerHTML = "🏆 You completed your entire diagnostic exploration path! 🏆";
+                actionBtn.innerHTML = `Compile & Generate Profile Report <i class="fa-solid fa-square-poll-vertical"></i>`;
+                actionBtn.onclick = compileDiagnosticDashboardReport;
+                clearSavedSessionState();
+            }
+            switchApplicationViewport('screen-adaptive-prompt');
+        }
+
+     function loadStudentPassageTrackingInterface() {
+    document.getElementById('btn-node-mic').classList.add('disabled');
+    document.getElementById('student-next-btn').classList.add('disabled');
+    
+    const pageData = db[currentStoryId].levels[currentStudentLevel].pages[currentStudentPage];
+    const passage = pageData.passage || "";
+    const passageDiv = document.getElementById('student-passage-text');
+    
+    // Renders the words as individual spans
+    passageDiv.innerHTML = passage.split(/\s+/).filter(Boolean).map((word, index) => 
+        `<span id="word-${index}" class="read-word">${word}</span>`
+    ).join(' ');
+    
+    // --- RESET THE HIGHLIGHTER FOR THE NEW PAGE ---
+    window.currentWordHighlightIndex = 0; 
+    // ----------------------------------------------
+    
+    const canvas = document.getElementById('student-image-canvas');
+    canvas.style.backgroundImage = pageData.image ? `url('${pageData.image}')` : "none";
+    
+    updateStudentHeaderDisplayState();
+    pageStartTime = Date.now();
+    
+    document.getElementById('btn-node-mic').classList.remove('disabled');
+}
+/* --- DIAGNOSTIC SCORING, EXPERT RULES & EXPORT CORE --- */
+function compileDiagnosticDashboardReport() {
+    clearSavedSessionState();
+    switchApplicationViewport('screen-payoff');
+
+    document.getElementById('payoff-student-meta').innerHTML = `<strong>Student Name:</strong> ${studentProfile.name} &bull; <strong>Track Selection:</strong> ${studentProfile.grade} ${studentProfile.section ? `[${studentProfile.section}]` : ''}`;
+
+    const tbody = document.getElementById('payoff-table-body');
+    tbody.innerHTML = "";
+    let completeRecordMarkupLog = "";
+    
+    // Evaluated conditions collection vectors for rule-based matching engine
+    let overallMetricsPool = { lowWpm: false, lowAccuracy: false, lowInterpretive: false };
+
+    Object.keys(trackingPerformanceCache).forEach(lvl => {
+        const data = trackingPerformanceCache[lvl];
+        
+        // FILTER: Skip levels that were not played (no performance data)
+        if (!data || !data.pageAccuracyRecords || data.pageAccuracyRecords.length === 0) {
+            return;
+        }
+        
+        // Philosophy Compliance: Total Words Divided by Total Reading Time across level entries[cite: 1]
+        const overallLevelWpm = Math.round((data.rawTotalWordsAcrossPages / data.rawTotalTimeAcrossPages) * 60);
+        const overallLevelAccuracy = Math.round(data.pageAccuracyRecords.reduce((a,b)=>a+b,0) / data.pageAccuracyRecords.length);
+        
+        const literalScore = data.comprehensionAnswers.filter(a => a.dimension === 'literal' && a.correct).length;
+        const interpretiveScore = data.comprehensionAnswers.filter(a => a.dimension === 'interpretive' && a.correct).length;
+        const applicationScore = data.comprehensionAnswers.filter(a => a.dimension === 'application' && a.correct).length;
+        const grandTotalCorrectComprehension = data.comprehensionAnswers.filter(a => a.correct).length;
+        const compRatioPercent = Math.round((grandTotalCorrectComprehension / 7) * 100);
+
+        let levelClassification = "Frustration";
+        if(overallLevelAccuracy >= PHIL_IRI_THRESHOLDS.INDEPENDENT.accuracy && compRatioPercent >= PHIL_IRI_THRESHOLDS.INDEPENDENT.comprehension) levelClassification = "Independent";
+        else if(overallLevelAccuracy >= PHIL_IRI_THRESHOLDS.INSTRUCTIONAL.accuracy && compRatioPercent >= PHIL_IRI_THRESHOLDS.INSTRUCTIONAL.comprehension) levelClassification = "Instructional";
+
+        // Map diagnostic alert flags for expert system rule verification matching bounds[cite: 1]
+        if(overallLevelWpm < 70) overallMetricsPool.lowWpm = true;
+        if(overallLevelAccuracy < 93) overallMetricsPool.lowAccuracy = true;
+        if(interpretiveScore < 2) overallMetricsPool.lowInterpretive = true;
+
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td><strong>Level ${lvl}</strong></td>
+            <td>${overallLevelWpm} WPM</td>
+            <td>${overallLevelAccuracy}% Ratio</td>
+            <td>L: ${literalScore}/3 &bull; I: ${interpretiveScore}/2 &bull; A: ${applicationScore}/2 (${grandTotalCorrectComprehension}/7)</td>
+            <td><span class="tier-badge badge-${levelClassification.toLowerCase()}">${levelClassification}</span></td>
+        `;
+        tbody.appendChild(row);
+
+        completeRecordMarkupLog += `--- ACCURACY MAPPING ENGINE MARKS: LEVEL ${lvl} ---\n`;
+        data.runningRecordMarkups.forEach((markup, index) => {
+            completeRecordMarkupLog += `Scene Passage Node ${index + 1}: ${markup}\n`;
+        });
+        completeRecordMarkupLog += `Miscue Audit: Substitutions: ${data.miscueStats.substitutions} | Omissions: ${data.miscueStats.omissions} | Insertions: ${data.miscueStats.insertions}\n\n`;
+    });
+
+    document.getElementById('payoff-running-record-log').innerHTML = completeRecordMarkupLog;
+   
+    // Execute non-AI expert logic system conditions matching array properties[cite: 1]
+    triggerRuleBasedRecommendationEngine(overallMetricsPool);
+
+    // PROGRESSION: Show "Next Level" button if applicable[cite: 1]
+    const continueBtn = document.getElementById('btn-continue-to-next');
+    if (continueBtn) {
+        continueBtn.style.display = (currentStudentLevel < 3) ? 'flex' : 'none';
+    }
+}
+        function triggerRuleBasedRecommendationEngine(flags) {
+            const block = document.getElementById('payoff-expert-recommendations');
+            let matchedRecommendationsList = [];
+
+	    const gradeNum = parseInt(studentProfile.grade.replace(/\D/g, '')) || 1;
+	    const wpmThresholds = { 1: 50, 2: 70, 3: 90 };
+            const currentThreshold = wpmThresholds[gradeNum] || 50;	    
+	
+	    if (flags.lowWpm && !flags.lowAccuracy) {
+        	matchedRecommendationsList.push(`<strong>Fluency Strategy:</strong> The student is reading below the ${currentThreshold} WPM benchmark for ${studentProfile.grade}. Continue repeated oral reading tracks and choral reading to build rhythmic automaticity[cite: 1].`);
+    	    }
+    
+    	    if (flags.lowAccuracy) {
+        	matchedRecommendationsList.push("<strong>Accuracy Strategy:</strong> Frequent miscues detected. Focus on finger tracking and explicit phonics instruction for common word endings[cite: 1].");
+    	    }
+    
+    	    if (flags.lowInterpretive) {
+        	matchedRecommendationsList.push("<strong>Comprehension Strategy:</strong> Focus on 'why' and 'how' questions. Practice predicting story outcomes before finishing a page[cite: 1].");
+    	    }
+    
+    	    // Default recommendation if no flags are triggered[cite: 1]
+    	    if(matchedRecommendationsList.length === 0) {
+        	matchedRecommendationsList.push("<strong>Growth Maintenance Strategy:</strong> Student demonstrates advanced diagnostic compliance across framework baselines. Expand vocabulary exposure fields and advance level challenges[cite: 1].");
+    	    }
+            block.innerHTML = matchedRecommendationsList.join("<br><br>");
+        }
+
+function triggerNativeReportPrint() {
+
+    const report = document.getElementById("screen-payoff");
+    const log = document.getElementById("payoff-running-record-log");
+
+    // Save original styles
+    const originalMaxHeight = log.style.maxHeight;
+    const originalOverflow = log.style.overflowY;
+
+    // Expand the log for export
+    log.style.maxHeight = "none";
+    log.style.overflowY = "visible";
+
+    const options = {
+        margin: 0.5,
+        filename: "PHIL-IRI_Report.pdf",
+
+        image: {
+            type: "jpeg",
+            quality: 1
+        },
+
+        html2canvas: {
+            scale: 2,
+            scrollY: 0,
+            windowWidth: document.body.scrollWidth,
+            windowHeight: document.body.scrollHeight
+        },
+
+        jsPDF: {
+            unit: "in",
+            format: "a4",
+            orientation: "portrait"
+        },
+pagebreak: {
+        mode: ['avoid-all', 'css', 'legacy']
+    }
+    };
+
+    html2pdf()
+        .set(options)
+        .from(report)
+        .save()
+        .then(() => {
+
+            // Restore the UI after exporting
+            log.style.maxHeight = originalMaxHeight;
+            log.style.overflowY = originalOverflow;
+
+        });
+
+}
+function triggerStructuralJsonExport() {
+    // Retrieve the grade number for the export metadata
+    const gradeNum = parseInt(studentProfile.grade.replace(/\D/g, '')) || 1;
+    const wpmBenchmark = (gradeNum === 1) ? 50 : (gradeNum === 2 ? 70 : 90);
+
+    const rawExportPayload = {
+        metadata: {
+            engineSignature: "PHIL_IRI_INTERACTIVE_V6",
+            timestamp: new Date().toISOString(),
+            studentName: studentProfile.name,
+            targetGrade: studentProfile.grade,
+            wpmBenchmark: wpmBenchmark, // Added dynamic benchmark for teacher reference
+            storyTrackPlayed: db[currentStoryId].title
+        },
+        // Including the refined miscue stats
+        diagnosticResults: Object.keys(trackingPerformanceCache).map(lvl => ({
+            level: lvl,
+            accuracy: trackingPerformanceCache[lvl].pageAccuracyRecords,
+            miscues: trackingPerformanceCache[lvl].miscueStats,
+            comprehension: trackingPerformanceCache[lvl].comprehensionAnswers
+        }))
+    };
+
+    const serializedDataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(rawExportPayload, null, 2));
+    const dlAnchor = document.createElement('a');
+    dlAnchor.setAttribute("href", serializedDataStr);
+    dlAnchor.setAttribute("download", `${studentProfile.name.replace(/\s+/g, '_')}_PhilIRI_Detailed_Log.json`);
+    dlAnchor.click();
+}
+
+        function resetStudentAdventureWorkflow() {
+            clearSavedSessionState();
+            switchApplicationViewport('screen-welcome');
+            document.getElementById('student-name-input').value = "";
+            document.getElementById('student-grade-input').value = "";
+            document.getElementById('student-section-input').value = "";
+            validateHomeConfiguration();
+        }
+function advanceToNextLevel() {
+    // Increment the student's current level
+    currentStudentLevel++;
+    
+    // Reset page to 1 for the new level
+    currentStudentPage = 1;
+    
+    // Create a fresh performance cache for the upcoming level
+    initPerformanceCacheForLevel(currentStudentLevel);
+    
+    // Switch the view and load the new passage
+    switchApplicationViewport('screen-gameplay');
+    loadStudentPassageTrackingInterface();
+}
+
+        /* --- RUNTIME COMPILER EXPORTER PACKAGE --- */
+        function exportStandaloneGame() {
+            if(!evaluateStudioValidationMatrix()) {
+                if(!confirm("Storyboard structural parameters contain incomplete items. Export target asset anyway?")) return;
+            }
+            const payload = JSON.stringify(db);
+            let code = document.documentElement.outerHTML;
+            code = code.replace(/let db = \{.*?\};/, `let db = ${payload};`);
+            
+            if (!code.includes('class="standalone-student-mode"')) {
+                code = code.replace('<body', '<body class="standalone-student-mode"');
+            }
+
+            const cleanOverrides = `
+                <style>
+                    #builder-panel { display: none !important; }
+                    #preview-panel { width: 100vw !important; height: 100vh !important; background: #eef2f7 !important; padding: 0 !important; }
+                    .student-card { max-width: 660px !important; height: 640px !important; }
+                </style>
+            </head>`;
+            code = code.replace('</head>', cleanOverrides);
+
+            const blob = new Blob([code], { type: "text/html;charset=utf-8" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = `phil_iri_runtime_package_${Date.now()}.html`;
+            link.click();
+        }
+    </script>
+
+</body></html>
