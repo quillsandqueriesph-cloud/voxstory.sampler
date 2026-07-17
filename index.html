@@ -1,12 +1,49 @@
 <html lang="en"><head>
-	 </script>
-	(function() {
-            var password = "voxstorysampler"; // Change this!
-            var input = prompt("This site is under construction. Please enter the password:");
-            if (input !== password) {
-                document.body.innerHTML = "<h1>Access Denied</h1>";
-                window.stop();
-            }
+	 <script>
+(function () {
+    const PASSWORD = "voxstorysampler";
+
+    const input = prompt(
+        "🔒 VoxStory Adventure Studio\n\n" +
+        "This application is currently under development.\n\n" +
+        "Please enter the access password:"
+    );
+
+    if (input === null || input !== PASSWORD) {
+        document.documentElement.innerHTML = `
+            <html>
+            <head>
+                <title>Access Denied</title>
+                <style>
+                    body{
+                        font-family:Arial,sans-serif;
+                        display:flex;
+                        justify-content:center;
+                        align-items:center;
+                        height:100vh;
+                        background:#f5f7fa;
+                        margin:0;
+                    }
+                    .box{
+                        text-align:center;
+                        padding:40px;
+                        background:white;
+                        border-radius:12px;
+                        box-shadow:0 8px 24px rgba(0,0,0,.15);
+                    }
+                    h1{color:#c0392b;}
+                </style>
+            </head>
+            <body>
+                <div class="box">
+                    <h1>Access Denied</h1>
+                    <p>Incorrect password.</p>
+                </div>
+            </body>
+            </html>
+        `;
+        throw new Error("Unauthorized");
+    }
         })();
     </script>
     <meta charset="UTF-8">
